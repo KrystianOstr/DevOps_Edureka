@@ -1,10 +1,15 @@
 pipeline {
-    agent {label 'worker'}
+    agent { label 'worker' }
+
+    tools {
+        maven 'maven'
+    }
+
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
+    }
 
     stages {
-
-        // TASK 2
-
         stage('Compile') {
             steps {
                 sh 'mvn compile'
@@ -23,28 +28,41 @@ pipeline {
             }
         }
 
-        // TASK 3
-
-        stage('Build Docker Image') {
+        stage('Docker Build') {
             steps {
-                sh 'docker build -t abc-retail-app .'
+                sh 'docker build -t mrbadd/abc-retail-app:${BUILD_NUMBER} .'
+                sh 'docker tag mrbadd/abc-retail-app:${BUILD_NUMBER} mrbadd/abc-retail-app:latest'
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Docker Login') {
             steps {
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+            }
+        }
 
-                // Stop and remove any existing container named 'retail-app' to avoid conflicts.
-                // The '|| true' ensures the pipeline doesn't fail if the container doesn't exist.
+        stage('Docker Push') {
+            steps {
+                sh 'docker push mrbadd/abc-retail-app:${BUILD_NUMBER}'
+                sh 'docker push mrbadd/abc-retail-app:latest'
+            }
+        }
+
+        stage('Docker Run') {
+            steps {
                 sh '''
                     docker stop retail-app || true
                     docker rm retail-app || true
-                    docker run -d -p 8081:8080 --name retail-app abc-retail-app
+                    docker run -d -p 8081:8080 --name retail-app mrbadd/abc-retail-app:latest
                 '''
             }
         }
+    }
 
-
+    post {
+        always {
+            sh 'docker logout'
+        }
     }
 }
 
