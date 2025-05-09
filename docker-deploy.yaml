@@ -4,34 +4,40 @@
   become: yes
 
   vars:
-    war_path: "/home/ubuntu/ABCtechnologies-1.0.war"
+    war_path: "/home/ubuntu/target/ABCtechnologies-1.0.war"
     dockerfile_path: "/home/ubuntu/Dockerfile"
     image_name: "mrbadd/abc-retail-app"
     container_name: "retail-app"
 
   tasks:
-    - name: Copy WAR file
+    - name: Ensure target directory exists
+      file:
+        path: /home/ubuntu/target
+        state: directory
+        mode: '0755'
+
+    - name: Copy WAR file to /home/ubuntu/target/
       copy:
         src: /var/lib/jenkins/workspace/Pipeline_Maven/target/ABCtechnologies-1.0.war
         dest: "{{ war_path }}"
 
-    - name: Copy Dockerfile
+    - name: Copy Dockerfile to remote host
       copy:
         src: /var/lib/jenkins/workspace/Pipeline_Maven/Dockerfile
         dest: "{{ dockerfile_path }}"
 
     - name: Log in to Docker Hub
-      shell: echo "{{ docker_password }}" | docker login -u {{ docker_username }} --password-stdin
+      shell: echo "{{ docker_password }}" | docker login -u "{{ docker_username }}" --password-stdin
 
     - name: Build Docker image with tag
       shell: docker build -t {{ image_name }}:{{ build_number }} -t {{ image_name }}:latest .
       args:
-        chdir: "/home/ubuntu"
+        chdir: /home/ubuntu
 
-    - name: Stop previous container (if running)
+    - name: Stop running container if exists
       shell: docker stop {{ container_name }} || true
 
-    - name: Remove old container (if exists)
+    - name: Remove old container if exists
       shell: docker rm {{ container_name }} || true
 
     - name: Run Docker container
