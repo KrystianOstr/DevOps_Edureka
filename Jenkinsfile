@@ -28,40 +28,27 @@ pipeline {
             }
         }
 
-        stage('Docker Build') {
+        stage('Deploy with Ansible') {
             steps {
-                sh 'docker build -t mrbadd/abc-retail-app:${BUILD_NUMBER} .'
-                sh 'docker tag mrbadd/abc-retail-app:${BUILD_NUMBER} mrbadd/abc-retail-app:latest'
+                script {
+                    sshagent(credentials: ['ansible-ssh-key']) {
+                        withCredentials([
+                            usernamePassword(
+                                credentialsId: 'dockerhub-creds',
+                                usernameVariable: 'USERNAME',
+                                passwordVariable: 'PASSWORD'
+                            )
+                        ]) {
+                            sh """
+                                ansible-playbook docker_deploy.yaml -i inventory \
+                                -e build_number=${BUILD_NUMBER} \
+                                -e docker_username=$USERNAME \
+                                -e docker_password=$PASSWORD
+                            """
+                        }
+                    }
+                }
             }
-        }
-
-        stage('Docker Login') {
-            steps {
-                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-            }
-        }
-
-        stage('Docker Push') {
-            steps {
-                sh 'docker push mrbadd/abc-retail-app:${BUILD_NUMBER}'
-                sh 'docker push mrbadd/abc-retail-app:latest'
-            }
-        }
-
-        stage('Docker Run') {
-            steps {
-                sh '''
-                    docker stop retail-app || true
-                    docker rm retail-app || true
-                    docker run -d -p 8081:8080 --name retail-app mrbadd/abc-retail-app:latest
-                '''
-            }
-        }
-    }
-
-    post {
-        always {
-            sh 'docker logout'
         }
     }
 }

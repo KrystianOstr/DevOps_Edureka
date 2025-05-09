@@ -1,1 +1,5 @@
 target/
+test/
+service.yaml
+deployment.yaml
+inventory

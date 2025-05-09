@@ -1,0 +1,39 @@
+---
+- name: Deploy ABC Retail App using Docker
+  hosts: worker
+  become: yes
+
+  vars:
+    war_path: "/home/ubuntu/ABCtechnologies-1.0.war"
+    dockerfile_path: "/home/ubuntu/Dockerfile"
+    image_name: "mrbadd/abc-retail-app"
+    container_name: "retail-app"
+
+  tasks:
+    - name: Copy WAR file
+      copy:
+        src: /var/lib/jenkins/workspace/Pipeline_Maven/target/ABCtechnologies-1.0.war
+        dest: "{{ war_path }}"
+
+    - name: Copy Dockerfile
+      copy:
+        src: /var/lib/jenkins/workspace/Pipeline_Maven/Dockerfile
+        dest: "{{ dockerfile_path }}"
+
+    - name: Log in to Docker Hub
+      shell: echo "{{ docker_password }}" | docker login -u {{ docker_username }} --password-stdin
+
+    - name: Build Docker image with tag
+      shell: docker build -t {{ image_name }}:{{ build_number }} -t {{ image_name }}:latest .
+      args:
+        chdir: "/home/ubuntu"
+
+    - name: Stop previous container (if running)
+      shell: docker stop {{ container_name }} || true
+
+    - name: Remove old container (if exists)
+      shell: docker rm {{ container_name }} || true
+
+    - name: Run Docker container
+      shell: docker run -d -p 8081:8080 --name {{ container_name }} {{ image_name }}:latest
+
