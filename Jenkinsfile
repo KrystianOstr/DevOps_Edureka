@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'worker' }
 
     tools {
         maven 'maven'
@@ -32,18 +32,20 @@ pipeline {
             steps {
                 script {
                     sshagent(credentials: ['ansible-ssh-key']) {
-                        withCredentials([usernamePassword(
-                            credentialsId: 'dockerhub-creds',
-                            usernameVariable: 'USERNAME',
-                            passwordVariable: 'PASSWORD'
-                        )]) {
-                            sh """
+                        withCredentials([
+                            usernamePassword(
+                                credentialsId: 'dockerhub-creds',
+                                usernameVariable: 'USERNAME',
+                                passwordVariable: 'PASSWORD'
+                            )
+                        ]) {
+                            sh '''
                                 export PATH=$PATH:/usr/bin
-                                ansible-playbook k8s-deploy2.yaml -i inventory \
-                                -e docker_username=$USERNAME \
-                                -e docker_password=$PASSWORD \
-                                -e build_number=${BUILD_NUMBER}
-                            """
+                                ansible-playbook k8s-deploy-full.yaml -i inventory \
+                                  -e docker_username=$USERNAME \
+                                  -e docker_password=$PASSWORD \
+                                  -e build_number=${BUILD_NUMBER}
+                            '''
                         }
                     }
                 }
@@ -51,3 +53,4 @@ pipeline {
         }
     }
 }
+
