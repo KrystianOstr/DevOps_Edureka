@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'worker' }
 
     tools {
         maven 'maven'
@@ -39,12 +39,13 @@ pipeline {
                                 passwordVariable: 'PASSWORD'
                             )
                         ]) {
-                            sh """
-                                /usr/bin/ansible-playbook docker-deploy.yaml -i inventory \
+                            sh '''
+                                export PATH=$PATH:/usr/bin
+                                ansible-playbook docker-deploy.yaml -i inventory \
                                 -e build_number=${BUILD_NUMBER} \
                                 -e docker_username=$USERNAME \
                                 -e docker_password=$PASSWORD
-                            """
+                            '''
                         }
                     }
                 }
