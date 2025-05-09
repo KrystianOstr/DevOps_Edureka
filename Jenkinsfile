@@ -10,6 +10,12 @@ pipeline {
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Compile') {
             steps {
                 sh 'mvn compile'
@@ -40,7 +46,8 @@ pipeline {
                             )
                         ]) {
                             sh """
-                                ansible-playbook docker_deploy.yaml -i inventory \
+                                ansible-playbook docker-deploy.yaml \
+                                -i inventory \
                                 -e build_number=${BUILD_NUMBER} \
                                 -e docker_username=$USERNAME \
                                 -e docker_password=$PASSWORD
