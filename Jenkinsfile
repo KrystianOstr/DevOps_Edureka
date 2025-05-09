@@ -41,7 +41,8 @@ pipeline {
                         ]) {
                             sh '''
                                 export PATH=$PATH:/usr/bin
-                                ansible-playbook k8s-deploy-full.yaml -i inventory \
+                                ansible-playbook k8s-deploy-full.yaml \
+                                  -i inventory \
                                   -e docker_username=$USERNAME \
                                   -e docker_password=$PASSWORD \
                                   -e build_number=${BUILD_NUMBER}
